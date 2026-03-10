@@ -4,39 +4,34 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
-import android.provider.MediaStore
-import com.newglobe.gemmaocr.ui.NormalizedRect
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlin.math.roundToInt
+
+private const val MAX_IMAGE_LONG_EDGE = 1280
 
 suspend fun decodeBitmapFromUri(
     context: Context,
     uri: Uri
 ): Result<Bitmap> = withContext(Dispatchers.IO) {
     runCatching {
-        val decoded = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            val source = ImageDecoder.createSource(context.contentResolver, uri)
-            ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
-                decoder.isMutableRequired = false
+        val source = ImageDecoder.createSource(context.contentResolver, uri)
+        val decoded = ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+            decoder.isMutableRequired = false
+            decoder.setMemorySizePolicy(ImageDecoder.MEMORY_POLICY_LOW_RAM)
+
+            val width = info.size.width
+            val height = info.size.height
+            val longEdge = maxOf(width, height)
+            if (longEdge > MAX_IMAGE_LONG_EDGE) {
+                val scale = MAX_IMAGE_LONG_EDGE.toFloat() / longEdge.toFloat()
+                val targetWidth = (width * scale).roundToInt().coerceAtLeast(1)
+                val targetHeight = (height * scale).roundToInt().coerceAtLeast(1)
+                decoder.setTargetSize(targetWidth, targetHeight)
             }
-        } else {
-            @Suppress("DEPRECATION")
-            MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
         }
         ensureArgb8888(decoded)
     }
-}
-
-fun cropBitmap(bitmap: Bitmap, rect: NormalizedRect): Bitmap {
-    val source = ensureArgb8888(bitmap)
-    val n = rect.normalized()
-    val left = (n.left * source.width).toInt().coerceIn(0, source.width - 1)
-    val top = (n.top * source.height).toInt().coerceIn(0, source.height - 1)
-    val right = (n.right * source.width).toInt().coerceIn(left + 1, source.width)
-    val bottom = (n.bottom * source.height).toInt().coerceIn(top + 1, source.height)
-    val width = (right - left).coerceAtLeast(1)
-    val height = (bottom - top).coerceAtLeast(1)
-    return ensureArgb8888(Bitmap.createBitmap(source, left, top, width, height))
 }
 
 fun ensureArgb8888(bitmap: Bitmap): Bitmap {

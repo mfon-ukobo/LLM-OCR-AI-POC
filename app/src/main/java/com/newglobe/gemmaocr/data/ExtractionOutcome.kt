@@ -7,9 +7,8 @@ sealed interface ExtractionOutcome {
         val normalizedJson: String
     ) : ExtractionOutcome
 
-    data class InvalidJsonAfterRetry(
-        val firstResponse: String,
-        val retryResponse: String
+    data class InvalidJson(
+        val rawResponse: String
     ) : ExtractionOutcome
 
     data class RuntimeError(

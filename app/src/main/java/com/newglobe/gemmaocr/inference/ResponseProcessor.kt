@@ -3,32 +3,16 @@ package com.newglobe.gemmaocr.inference
 import com.newglobe.gemmaocr.data.ExtractionOutcome
 
 class ResponseProcessor {
-    fun process(
-        initialResponse: String,
-        retrySupplier: (String) -> String
-    ): ExtractionOutcome {
-        val initialValidated = JsonValidator.parse(initialResponse)
-        if (initialValidated != null) {
-            return ExtractionOutcome.Success(
-                result = initialValidated.parsed,
-                rawResponse = initialResponse,
-                normalizedJson = initialValidated.normalizedJson
-            )
-        }
-
-        val retryResponse = retrySupplier(initialResponse)
-        val retryValidated = JsonValidator.parse(retryResponse)
-        return if (retryValidated != null) {
+    fun process(rawResponse: String): ExtractionOutcome {
+        val validated = JsonValidator.parse(rawResponse)
+        return if (validated != null) {
             ExtractionOutcome.Success(
-                result = retryValidated.parsed,
-                rawResponse = retryResponse,
-                normalizedJson = retryValidated.normalizedJson
+                result = validated.parsed,
+                rawResponse = rawResponse,
+                normalizedJson = validated.normalizedJson
             )
         } else {
-            ExtractionOutcome.InvalidJsonAfterRetry(
-                firstResponse = initialResponse,
-                retryResponse = retryResponse
-            )
+            ExtractionOutcome.InvalidJson(rawResponse = rawResponse)
         }
     }
 }

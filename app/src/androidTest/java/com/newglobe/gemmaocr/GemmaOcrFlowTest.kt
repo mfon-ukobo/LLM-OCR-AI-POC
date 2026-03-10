@@ -11,13 +11,11 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.newglobe.gemmaocr.data.ExtractionOutcome
 import com.newglobe.gemmaocr.data.OcrJsonResult
 import com.newglobe.gemmaocr.data.OcrKeyValue
 import com.newglobe.gemmaocr.ui.AppUiState
-import com.newglobe.gemmaocr.ui.NormalizedRect
 import com.newglobe.gemmaocr.ui.SetupUiState
 import org.junit.Rule
 import org.junit.Test
@@ -29,7 +27,7 @@ class GemmaOcrFlowTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun setupToPickToResult_flowWithFakeExtractor() {
+    fun setupToPickToManualRepair_flowWithFakeExtractor() {
         composeRule.setContent {
             var uiState by remember {
                 mutableStateOf(
@@ -53,10 +51,15 @@ class GemmaOcrFlowTest {
                 onPickImage = {
                     uiState = uiState.copy(selectedImage = sampleBitmap)
                 },
-                onCropChanged = { rect ->
-                    uiState = uiState.copy(cropRect = rect)
-                },
                 onExtract = {
+                    uiState = uiState.copy(
+                        extractionOutcome = ExtractionOutcome.InvalidJson(
+                            rawResponse = "invalid raw output"
+                        ),
+                        isExtracting = false
+                    )
+                },
+                onRepairJson = {
                     uiState = uiState.copy(
                         extractionOutcome = ExtractionOutcome.Success(
                             result = OcrJsonResult(
@@ -84,7 +87,7 @@ class GemmaOcrFlowTest {
                     )
                 },
                 onClearImage = {
-                    uiState = uiState.copy(selectedImage = null, cropRect = NormalizedRect.Default)
+                    uiState = uiState.copy(selectedImage = null)
                 },
                 onDismissError = {
                     uiState = uiState.copy(transientError = null)
@@ -99,12 +102,10 @@ class GemmaOcrFlowTest {
         composeRule.onNodeWithText("Retry Setup").performClick()
         composeRule.onNodeWithTag("pick_image_button").assertTextContains("Choose Image")
         composeRule.onNodeWithTag("pick_image_button").performClick()
-        composeRule.onNodeWithTag("crop_surface").performTouchInput {
-            down(center)
-            moveBy(androidx.compose.ui.geometry.Offset(20f, 10f))
-            up()
-        }
         composeRule.onNodeWithTag("extract_button").performClick()
+        composeRule.onNodeWithTag("result_text").assertTextContains("invalid raw output")
+        composeRule.onNodeWithTag("repair_json_button").assertTextContains("Repair JSON")
+        composeRule.onNodeWithTag("repair_json_button").performClick()
         composeRule.onNodeWithTag("result_text").assertTextContains("HELLO WORLD")
     }
 
@@ -118,8 +119,8 @@ class GemmaOcrFlowTest {
                 ),
                 onRetrySetup = {},
                 onPickImage = {},
-                onCropChanged = {},
                 onExtract = {},
+                onRepairJson = {},
                 onClearImage = {},
                 onDismissError = {},
                 onRestart = {}

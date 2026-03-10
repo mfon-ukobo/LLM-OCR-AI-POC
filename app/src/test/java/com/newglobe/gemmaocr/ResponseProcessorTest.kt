@@ -8,14 +8,9 @@ import org.junit.Test
 
 class ResponseProcessorTest {
     @Test
-    fun process_invalidFirstResponse_retriesExactlyOnce() {
+    fun process_validJson_returnsSuccess() {
         val processor = ResponseProcessor()
-        var retries = 0
-
         val outcome = processor.process(
-            initialResponse = "not json"
-        ) {
-            retries += 1
             """
             {
               "full_text":"ok",
@@ -23,20 +18,18 @@ class ResponseProcessorTest {
               "key_values":[]
             }
             """.trimIndent()
-        }
+        )
 
-        assertEquals(1, retries)
         assertTrue(outcome is ExtractionOutcome.Success)
     }
 
     @Test
-    fun process_invalidAfterRetry_returnsInvalidOutcome() {
+    fun process_invalidJson_returnsInvalidOutcomeWithRawResponse() {
         val processor = ResponseProcessor()
 
-        val outcome = processor.process(
-            initialResponse = "bad one"
-        ) { "still bad" }
+        val outcome = processor.process("bad one")
 
-        assertTrue(outcome is ExtractionOutcome.InvalidJsonAfterRetry)
+        assertTrue(outcome is ExtractionOutcome.InvalidJson)
+        assertEquals("bad one", (outcome as ExtractionOutcome.InvalidJson).rawResponse)
     }
 }
