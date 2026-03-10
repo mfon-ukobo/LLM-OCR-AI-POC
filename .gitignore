@@ -9,3 +9,5 @@
 /.tmp/
 /_tmp_mediapipe/
 **/build/
+config.bat
+node_modules

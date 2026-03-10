@@ -4,5 +4,6 @@ import android.graphics.Bitmap
 import com.newglobe.gemmaocr.data.ExtractionOutcome
 
 interface OcrExtractor {
-    suspend fun extract(crop: Bitmap): ExtractionOutcome
+    suspend fun extract(image: Bitmap): ExtractionOutcome
+    suspend fun repairJson(invalidResponse: String): ExtractionOutcome
 }

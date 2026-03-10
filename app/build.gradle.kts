@@ -11,6 +11,10 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use(localProperties::load)
 }
+val configuredModelMaxTokens = localProperties.getProperty("MODEL_MAX_TOKENS", "512")
+    .toIntOrNull()
+    ?: 512
+val safeModelMaxTokens = maxOf(configuredModelMaxTokens, 512)
 
 fun quoteForBuildConfig(value: String): String {
     val escaped = value.replace("\\", "\\\\").replace("\"", "\\\"")
@@ -46,6 +50,11 @@ android {
             "String",
             "MODEL_URL",
             quoteForBuildConfig(localProperties.getProperty("MODEL_URL", ""))
+        )
+        buildConfigField(
+            "int",
+            "MODEL_MAX_TOKENS",
+            safeModelMaxTokens.toString()
         )
     }
 

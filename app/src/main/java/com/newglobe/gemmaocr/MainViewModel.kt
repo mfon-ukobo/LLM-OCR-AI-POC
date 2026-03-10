@@ -4,16 +4,17 @@ import android.app.Application
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.newglobe.gemmaocr.data.ModelConfig
+import com.newglobe.gemmaocr.data.ExtractionOutcome
 import com.newglobe.gemmaocr.inference.GemmaOcrEngine
 import com.newglobe.gemmaocr.inference.OcrExtractor
 import com.newglobe.gemmaocr.model.ModelDownloadProgress
 import com.newglobe.gemmaocr.model.ModelManager
 import com.newglobe.gemmaocr.model.ModelProvisionResult
 import com.newglobe.gemmaocr.ui.AppUiState
-import com.newglobe.gemmaocr.ui.NormalizedRect
 import com.newglobe.gemmaocr.ui.SetupUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +45,9 @@ class MainViewModel(
     val uiState: StateFlow<AppUiState> = _uiState.asStateFlow()
 
     private var extractor: OcrExtractor? = null
+    private var hasProgressEmission = false
+    private var lastProgressEmitUptimeMs = 0L
+    private var lastProgressEmitBytes = 0L
 
     init {
         prepareModel()
@@ -61,7 +65,6 @@ class MainViewModel(
                     _uiState.update {
                         it.copy(
                             selectedImage = bitmap,
-                            cropRect = NormalizedRect.Default,
                             extractionOutcome = null,
                             transientError = null
                         )
@@ -75,15 +78,10 @@ class MainViewModel(
         }
     }
 
-    fun updateCropRect(rect: NormalizedRect) {
-        _uiState.update { it.copy(cropRect = rect.normalized()) }
-    }
-
     fun clearSelectedImage() {
         _uiState.update {
             it.copy(
                 selectedImage = null,
-                cropRect = NormalizedRect.Default,
                 extractionOutcome = null,
                 transientError = null
             )
@@ -105,10 +103,34 @@ class MainViewModel(
             _uiState.update { it.copy(transientError = "Choose an image first.") }
             return
         }
-        if (!state.cropRect.isUsable()) {
-            _uiState.update { it.copy(transientError = "Select a larger crop area.") }
+        val activeExtractor = extractor
+        if (activeExtractor == null) {
+            _uiState.update { it.copy(transientError = "Model is not ready yet.") }
             return
         }
+        if (state.isExtracting) {
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isExtracting = true, extractionOutcome = null, transientError = null) }
+            val outcome = activeExtractor.extract(bitmap)
+            _uiState.update {
+                it.copy(
+                    isExtracting = false,
+                    extractionOutcome = outcome
+                )
+            }
+        }
+    }
+
+    fun repairInvalidJson() {
+        val state = _uiState.value
+        if (state.isExtracting) {
+            return
+        }
+
+        val invalidOutcome = state.extractionOutcome as? ExtractionOutcome.InvalidJson ?: return
         val activeExtractor = extractor
         if (activeExtractor == null) {
             _uiState.update { it.copy(transientError = "Model is not ready yet.") }
@@ -116,20 +138,8 @@ class MainViewModel(
         }
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isExtracting = true, extractionOutcome = null, transientError = null) }
-            val cropResult = runCatching { cropBitmap(bitmap, state.cropRect) }
-            if (cropResult.isFailure) {
-                _uiState.update {
-                    it.copy(
-                        isExtracting = false,
-                        transientError = cropResult.exceptionOrNull()?.message ?: "Crop failed."
-                    )
-                }
-                return@launch
-            }
-
-            val cropped = cropResult.getOrThrow()
-            val outcome = activeExtractor.extract(cropped)
+            _uiState.update { it.copy(isExtracting = true, transientError = null) }
+            val outcome = activeExtractor.repairJson(invalidOutcome.rawResponse)
             _uiState.update {
                 it.copy(
                     isExtracting = false,
@@ -141,6 +151,7 @@ class MainViewModel(
 
     private fun prepareModel() {
         viewModelScope.launch {
+            resetDownloadProgressThrottle()
             _uiState.update {
                 it.copy(
                     setupState = SetupUiState.Checking,
@@ -185,6 +196,22 @@ class MainViewModel(
     }
 
     private fun onDownloadProgress(progress: ModelDownloadProgress) {
+        val now = SystemClock.elapsedRealtime()
+        val isFirst = !hasProgressEmission
+        val downloadedDelta = progress.downloadedBytes - lastProgressEmitBytes
+        val elapsedMs = now - lastProgressEmitUptimeMs
+        val isComplete = progress.totalBytes?.let { progress.downloadedBytes >= it } ?: false
+        val shouldEmit = isFirst ||
+            downloadedDelta >= PROGRESS_MIN_BYTE_DELTA ||
+            elapsedMs >= PROGRESS_MIN_INTERVAL_MS ||
+            isComplete
+        if (!shouldEmit) {
+            return
+        }
+
+        hasProgressEmission = true
+        lastProgressEmitUptimeMs = now
+        lastProgressEmitBytes = progress.downloadedBytes
         _uiState.update {
             it.copy(
                 setupState = SetupUiState.Downloading(
@@ -217,8 +244,19 @@ class MainViewModel(
         runCatching { closable.close() }
     }
 
+    private fun resetDownloadProgressThrottle() {
+        hasProgressEmission = false
+        lastProgressEmitUptimeMs = 0L
+        lastProgressEmitBytes = 0L
+    }
+
     override fun onCleared() {
         closeExtractor()
         super.onCleared()
+    }
+
+    companion object {
+        private const val PROGRESS_MIN_INTERVAL_MS = 250L
+        private const val PROGRESS_MIN_BYTE_DELTA = 1024L * 1024L
     }
 }

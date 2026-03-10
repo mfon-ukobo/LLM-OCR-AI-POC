@@ -11,8 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.newglobe.gemmaocr.ui.AppUiState
-import com.newglobe.gemmaocr.ui.NormalizedRect
-import com.newglobe.gemmaocr.ui.PickAndCropScreen
+import com.newglobe.gemmaocr.ui.PickImageScreen
 import com.newglobe.gemmaocr.ui.ResultScreen
 import com.newglobe.gemmaocr.ui.SetupScreen
 import com.newglobe.gemmaocr.ui.SetupUiState
@@ -36,8 +35,8 @@ fun GemmaOcrApp(
                 uiState = uiState,
                 onRetrySetup = mainViewModel::retrySetup,
                 onPickImage = { galleryPicker.launch("image/*") },
-                onCropChanged = mainViewModel::updateCropRect,
                 onExtract = mainViewModel::runExtraction,
+                onRepairJson = mainViewModel::repairInvalidJson,
                 onClearImage = mainViewModel::clearSelectedImage,
                 onDismissError = mainViewModel::dismissTransientError,
                 onRestart = mainViewModel::resetResult
@@ -51,8 +50,8 @@ fun GemmaOcrAppScreen(
     uiState: AppUiState,
     onRetrySetup: () -> Unit,
     onPickImage: () -> Unit,
-    onCropChanged: (NormalizedRect) -> Unit,
     onExtract: () -> Unit,
+    onRepairJson: () -> Unit,
     onClearImage: () -> Unit,
     onDismissError: () -> Unit,
     onRestart: () -> Unit
@@ -73,18 +72,18 @@ fun GemmaOcrAppScreen(
         outcome != null -> {
             ResultScreen(
                 outcome = outcome,
+                isBusy = uiState.isExtracting,
+                onRepairJson = onRepairJson,
                 onRunAnother = onRestart
             )
         }
 
         else -> {
-            PickAndCropScreen(
+            PickImageScreen(
                 selectedImage = uiState.selectedImage,
-                cropRect = uiState.cropRect,
                 isExtracting = uiState.isExtracting,
                 transientError = uiState.transientError,
                 onPickImage = onPickImage,
-                onCropChanged = onCropChanged,
                 onExtract = onExtract,
                 onClearImage = onClearImage,
                 onDismissError = onDismissError
