@@ -12,9 +12,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.newglobe.gemmaocr.data.AnswerSheetJsonResult
 import com.newglobe.gemmaocr.data.ExtractionOutcome
-import com.newglobe.gemmaocr.data.OcrJsonResult
-import com.newglobe.gemmaocr.data.OcrKeyValue
+import com.newglobe.gemmaocr.data.ShortAnswerItem
 import com.newglobe.gemmaocr.ui.AppUiState
 import com.newglobe.gemmaocr.ui.SetupUiState
 import org.junit.Rule
@@ -62,22 +62,20 @@ class GemmaOcrFlowTest {
                 onRepairJson = {
                     uiState = uiState.copy(
                         extractionOutcome = ExtractionOutcome.Success(
-                            result = OcrJsonResult(
-                                fullText = "HELLO WORLD",
-                                lines = listOf("HELLO WORLD"),
-                                keyValues = listOf(OcrKeyValue("sample", "value"))
+                            result = AnswerSheetJsonResult(
+                                pupilName = "HELLO WORLD",
+                                shortAnswers = listOf(
+                                    ShortAnswerItem(question = "21", answer = "sample")
+                                )
                             ),
-                            rawResponse = """{"full_text":"HELLO WORLD","lines":["HELLO WORLD"],"key_values":[{"key":"sample","value":"value"}]}""",
+                            rawResponse = """{"pupil_name":"HELLO WORLD","short_answers":[{"question":"21","answer":"sample"}]}""",
                             normalizedJson = """
                                 {
-                                  "full_text": "HELLO WORLD",
-                                  "lines": [
-                                    "HELLO WORLD"
-                                  ],
-                                  "key_values": [
+                                  "pupil_name": "HELLO WORLD",
+                                  "short_answers": [
                                     {
-                                      "key": "sample",
-                                      "value": "value"
+                                      "question": "21",
+                                      "answer": "sample"
                                     }
                                   ]
                                 }

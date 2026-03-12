@@ -2,7 +2,7 @@ package com.newglobe.gemmaocr.data
 
 sealed interface ExtractionOutcome {
     data class Success(
-        val result: OcrJsonResult,
+        val result: AnswerSheetJsonResult,
         val rawResponse: String,
         val normalizedJson: String
     ) : ExtractionOutcome

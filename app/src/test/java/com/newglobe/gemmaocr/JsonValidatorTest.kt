@@ -11,18 +11,35 @@ class JsonValidatorTest {
     fun parse_validJson_returnsParsedPayload() {
         val raw = """
             {
-              "full_text": "Hello",
-              "lines": ["Hello"],
-              "key_values": [{"key":"Name","value":"Ada"}]
+              "pupil_name": "Ada",
+              "short_answers": [
+                {"question":"31","answer":"Leaf"}
+              ]
             }
         """.trimIndent()
 
         val parsed = JsonValidator.parse(raw)
 
         assertNotNull(parsed)
-        assertEquals("Hello", parsed?.parsed?.fullText)
-        assertEquals(1, parsed?.parsed?.lines?.size)
-        assertEquals("Name", parsed?.parsed?.keyValues?.first()?.key)
+        assertEquals("Ada", parsed?.parsed?.pupilName)
+        assertEquals(1, parsed?.parsed?.shortAnswers?.size)
+        assertEquals("31", parsed?.parsed?.shortAnswers?.first()?.question)
+    }
+
+    @Test
+    fun parse_emptyShortAnswers_isValid() {
+        val raw = """
+            {
+              "pupil_name": "",
+              "short_answers": []
+            }
+        """.trimIndent()
+
+        val parsed = JsonValidator.parse(raw)
+
+        assertNotNull(parsed)
+        assertEquals("", parsed?.parsed?.pupilName)
+        assertEquals(0, parsed?.parsed?.shortAnswers?.size)
     }
 
     @Test
@@ -30,9 +47,8 @@ class JsonValidatorTest {
         val raw = """
             ```json
             {
-              "full_text":"Alpha",
-              "lines":["Alpha"],
-              "key_values":[]
+              "pupil_name":"Alpha",
+              "short_answers":[]
             }
             ```
         """.trimIndent()
@@ -40,12 +56,30 @@ class JsonValidatorTest {
         val parsed = JsonValidator.parse(raw)
 
         assertNotNull(parsed)
-        assertEquals("Alpha", parsed?.parsed?.fullText)
+        assertEquals("Alpha", parsed?.parsed?.pupilName)
     }
 
     @Test
-    fun parse_malformedJson_returnsNull() {
-        val raw = """{"full_text":"Oops","lines":["A"],"key_values":[}"""
+    fun parse_missingPupilName_returnsNull() {
+        val raw = """{"short_answers":[{"question":"21","answer":"Sun"}]}"""
+
+        val parsed = JsonValidator.parse(raw)
+
+        assertNull(parsed)
+    }
+
+    @Test
+    fun parse_missingShortAnswers_returnsNull() {
+        val raw = """{"pupil_name":"Ada"}"""
+
+        val parsed = JsonValidator.parse(raw)
+
+        assertNull(parsed)
+    }
+
+    @Test
+    fun parse_shortAnswersNotArray_returnsNull() {
+        val raw = """{"pupil_name":"Ada","short_answers":"bad"}"""
 
         val parsed = JsonValidator.parse(raw)
 

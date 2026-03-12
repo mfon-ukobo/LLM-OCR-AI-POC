@@ -1,6 +1,6 @@
 package com.newglobe.gemmaocr.inference
 
-import com.newglobe.gemmaocr.data.OcrJsonResult
+import com.newglobe.gemmaocr.data.AnswerSheetJsonResult
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -8,18 +8,16 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 object JsonValidator {
     private val json = Json {
         prettyPrint = true
-        ignoreUnknownKeys = false
+        ignoreUnknownKeys = true
         isLenient = true
     }
 
     data class Validated(
-        val parsed: OcrJsonResult,
+        val parsed: AnswerSheetJsonResult,
         val normalizedJson: String
     )
 
@@ -30,8 +28,8 @@ object JsonValidator {
             if (!hasSchemaShape(element)) {
                 return null
             }
-            val parsed = json.decodeFromJsonElement<OcrJsonResult>(element)
-            Validated(parsed = parsed, normalizedJson = json.encodeToString(OcrJsonResult.serializer(), parsed))
+            val parsed = json.decodeFromJsonElement<AnswerSheetJsonResult>(element)
+            Validated(parsed = parsed, normalizedJson = json.encodeToString(AnswerSheetJsonResult.serializer(), parsed))
         } catch (_: SerializationException) {
             null
         } catch (_: IllegalArgumentException) {
@@ -87,19 +85,8 @@ object JsonValidator {
 
     private fun hasSchemaShape(element: JsonElement): Boolean {
         val obj = element as? JsonObject ?: return false
-        val fullText = obj["full_text"] as? JsonPrimitive ?: return false
-        if (!fullText.isString) return false
-
-        val lines = obj["lines"]?.jsonArray ?: return false
-        if (lines.any { (it as? JsonPrimitive)?.isString != true }) return false
-
-        val keyValues = obj["key_values"]?.jsonArray ?: return false
-        val keyValueShapeOk = keyValues.all { item ->
-            val kvObject = item as? JsonObject ?: return@all false
-            val key = kvObject["key"]?.jsonPrimitive
-            val value = kvObject["value"]?.jsonPrimitive
-            key != null && key.isString && value != null && value.isString
-        }
-        return keyValueShapeOk
+        val pupilName = obj["pupil_name"] as? JsonPrimitive ?: return false
+        if (!pupilName.isString) return false
+        return obj["short_answers"]?.jsonArray != null
     }
 }

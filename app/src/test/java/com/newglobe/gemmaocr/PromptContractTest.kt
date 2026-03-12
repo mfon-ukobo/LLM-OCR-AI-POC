@@ -12,8 +12,11 @@ class PromptContractTest {
         assertTrue(prompt.contains("STRICT JSON only"))
         assertTrue(prompt.contains("Read the image"))
         assertTrue(!prompt.contains("image crop"))
-        assertTrue(prompt.contains("\"full_text\""))
-        assertTrue(prompt.contains("\"lines\""))
-        assertTrue(prompt.contains("\"key_values\""))
+        assertTrue(prompt.contains("\"pupil_name\""))
+        assertTrue(prompt.contains("\"short_answers\""))
+        assertTrue(prompt.contains("\"question\""))
+        assertTrue(prompt.contains("\"answer\""))
+        assertTrue(!prompt.contains("\"21\""))
+        assertTrue(!prompt.contains("\"25\""))
     }
 }

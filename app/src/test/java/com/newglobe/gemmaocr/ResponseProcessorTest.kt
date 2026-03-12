@@ -13,9 +13,8 @@ class ResponseProcessorTest {
         val outcome = processor.process(
             """
             {
-              "full_text":"ok",
-              "lines":["ok"],
-              "key_values":[]
+              "pupil_name":"ok",
+              "short_answers":[]
             }
             """.trimIndent()
         )
