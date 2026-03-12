@@ -63,15 +63,13 @@ class GemmaOcrFlowTest {
                     uiState = uiState.copy(
                         extractionOutcome = ExtractionOutcome.Success(
                             result = AnswerSheetJsonResult(
-                                pupilName = "HELLO WORLD",
                                 shortAnswers = listOf(
                                     ShortAnswerItem(question = "21", answer = "sample")
                                 )
                             ),
-                            rawResponse = """{"pupil_name":"HELLO WORLD","short_answers":[{"question":"21","answer":"sample"}]}""",
+                            rawResponse = """{"short_answers":[{"question":"21","answer":"sample"}]}""",
                             normalizedJson = """
                                 {
-                                  "pupil_name": "HELLO WORLD",
                                   "short_answers": [
                                     {
                                       "question": "21",
@@ -104,7 +102,7 @@ class GemmaOcrFlowTest {
         composeRule.onNodeWithTag("result_text").assertTextContains("invalid raw output")
         composeRule.onNodeWithTag("repair_json_button").assertTextContains("Repair JSON")
         composeRule.onNodeWithTag("repair_json_button").performClick()
-        composeRule.onNodeWithTag("result_text").assertTextContains("HELLO WORLD")
+        composeRule.onNodeWithTag("result_text").assertTextContains("sample")
     }
 
     @Test

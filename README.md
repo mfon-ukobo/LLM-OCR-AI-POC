@@ -32,6 +32,5 @@ Notes:
 1. Setup screen validates config and downloads/caches model.
 2. User picks image from gallery.
 3. Extraction runs and returns JSON schema:
-   - `pupil_name: string`
    - `short_answers: [{ question: string, answer: string }]` (can be empty)
 4. If output is invalid JSON, user can trigger manual JSON repair.

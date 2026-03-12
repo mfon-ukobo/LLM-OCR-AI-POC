@@ -10,13 +10,14 @@ class PromptContractTest {
         val prompt = PromptContract.extractionPrompt()
 
         assertTrue(prompt.contains("STRICT JSON only"))
-        assertTrue(prompt.contains("Read the image"))
+        assertTrue(prompt.contains("Read this cropped answer-sheet section"))
         assertTrue(!prompt.contains("image crop"))
-        assertTrue(prompt.contains("\"pupil_name\""))
         assertTrue(prompt.contains("\"short_answers\""))
         assertTrue(prompt.contains("\"question\""))
         assertTrue(prompt.contains("\"answer\""))
-        assertTrue(!prompt.contains("\"21\""))
-        assertTrue(!prompt.contains("\"25\""))
+        assertTrue(!prompt.contains("\"pupil_name\""))
+        assertTrue(prompt.contains("Extract only handwriting"))
+        assertTrue(prompt.contains("Ignore printed text, bubble choices"))
+        assertTrue(prompt.contains("\"UNKNOWN\""))
     }
 }
